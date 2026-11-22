@@ -1,5 +1,4 @@
-using System.Collections;
-using System.Collections.Generic;
+
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -11,131 +10,170 @@ public class Player : MonoBehaviour
     private bool jumped;
 
     [SerializeField]
-    AudioSource audioKill, audioJump;
+    private AudioSource audioKill, audioJump;
 
     [SerializeField]
     private AudioClip deadSound;
 
     private bool isAlive = true;
 
-    void Awake()
+    private void Awake()
     {
-        // Instead of adding Jump function on Button's OnClickListner in UNity we are using code and assigning it directly here
-        GameObject.Find("JumpBtn").GetComponent<Button>().onClick.AddListener(Jump);
+        GameObject jumpButtonObject = GameObject.Find("JumpBtn");
+
+        if (jumpButtonObject != null)
+        {
+            Button jumpButton = jumpButtonObject.GetComponent<Button>();
+
+            if (jumpButton != null)
+            {
+                jumpButton.onClick.AddListener(Jump);
+            }
+            else
+            {
+                Debug.LogError("Player: JumpBtn has no Button component.", this);
+            }
+        }
+        else
+        {
+            Debug.LogError("Player: JumpBtn was not found.", this);
+        }
+
         anim = GetComponent<Animator>();
 
         onRight = true;
         onLeft = false;
+
+        if (anim == null)
+        {
+            Debug.LogError("Player: Animator component not found.", this);
+        }
     }
 
-    // Update is called once per frame
-    void Update()
+    private void Update()
     {
-        if (isAlive)
-        {
-            if (!jumped)
-            {
-                if (onRight)
-                {
-                    anim.Play("RunRight");
-                }
-                else
-                {
-                    anim.Play("RunLeft");
-                }
-            }
+        if (!isAlive || anim == null)
+            return;
 
-            if (Input.GetKeyDown(KeyCode.Space))
-            {
-                if (onRight)
-                {
-                    anim.Play("JumpLeft");
-                }
-                else
-                {
-                    anim.Play("JumpRight");
-                }
-                jumped = true;
-                audioJump.Play();
-            }
+        if (!jumped)
+        {
+            if (onRight)
+                anim.Play("RunRight");
+            else
+                anim.Play("RunLeft");
+        }
+
+        if (Input.GetKeyDown(KeyCode.Space))
+        {
+            Jump();
         }
     }
 
     public void Jump()
     {
-        if (isAlive)
+        if (!isAlive || anim == null)
+            return;
+
+        if (onRight)
+            anim.Play("JumpLeft");
+        else
+            anim.Play("JumpRight");
+
+        jumped = true;
+
+        if (audioJump != null)
         {
-            if (onRight)
-            {
-                anim.Play("JumpLeft");
-            }
-            else
-            {
-                anim.Play("JumpRight");
-            }
-            jumped = true;
             audioJump.Play();
         }
     }
 
-    void OnLeft()
+    private void OnLeft()
     {
         onLeft = true;
         onRight = false;
-
         jumped = false;
     }
 
-    // We have played the event in start on JumpRight animation because we are assigning it the same animation as JumpLeft and then we are playing the animation in reverse by adding (-)sign
-    void OnRight()
+    private void OnRight()
     {
         onLeft = false;
         onRight = true;
-
         jumped = false;
     }
 
-    void PlayerDied()
+    private void PlayerDied()
     {
-        audioKill.clip = deadSound;
-        audioKill.Play();
+        if (!isAlive)
+            return;
 
         isAlive = false;
 
-        if(transform.position.x > 0f)
+        if (audioKill != null && deadSound != null)
         {
-            anim.Play("PlayerDiedRight");
+            audioKill.clip = deadSound;
+            audioKill.Play();
+        }
+
+        if (anim != null)
+        {
+            if (transform.position.x > 0f)
+                anim.Play("PlayerDiedRight");
+            else
+                anim.Play("PlayerDiedLeft");
+        }
+
+        if (GameplayController.instance != null)
+        {
+            GameplayController.instance.GameOver();
         }
         else
         {
-            anim.Play("PlayerDiedLeft");
+            Debug.LogError("Player: GameplayController instance not found.", this);
         }
 
-        GameplayController.instance.GameOver();
         Time.timeScale = 0f;
     }
 
     private void OnTriggerEnter2D(Collider2D target)
     {
-        if(jumped)
+        if (!isAlive || target == null)
+            return;
+
+        if (target.CompareTag("Enemy"))
         {
-            if(target.tag == "Enemy")
+            if (jumped)
             {
                 target.gameObject.SetActive(false);
-                audioKill.Play();
+
+                if (audioKill != null)
+                {
+                    audioKill.Play();
+                }
             }
-        }
-        else
-        {
-            if(target.tag == "Enemy")
+            else
             {
                 PlayerDied();
             }
         }
 
-        if(target.tag == "EnemyTree")
+        if (target.CompareTag("EnemyTree"))
         {
             PlayerDied();
+        }
+    }
+
+    private void OnDestroy()
+    {
+        GameObject jumpButtonObject = GameObject.Find("JumpBtn");
+
+        if (jumpButtonObject != null)
+        {
+            Button jumpButton = jumpButtonObject.GetComponent<Button>();
+
+            if (jumpButton != null)
+            {
+                jumpButton.onClick.RemoveListener(Jump);
+            }
         }
     }
 }
