@@ -1,34 +1,43 @@
-using System.Collections;
-using System.Collections.Generic;
+
 using UnityEngine;
 
 public class EnemyMove : MonoBehaviour
 {
     public float moveSpeed = 1f;
+
     private float cameraY;
 
-    void Start()
+    private void Start()
     {
-        cameraY = Camera.main.transform.position.y -10f;
+        Camera mainCamera = Camera.main;
+
+        if (mainCamera != null)
+        {
+            cameraY = mainCamera.transform.position.y - 10f;
+        }
+        else
+        {
+            Debug.LogError("EnemyMove: Main Camera not found.", this);
+            enabled = false;
+        }
     }
 
-
-    void Update()
+    private void Update()
     {
         Move();
         Deactivate();
     }
 
-    void Move()
+    private void Move()
     {
-        Vector3 temp = transform.position;
-        temp.y -= moveSpeed *Time.deltaTime;
-        transform.position = temp;
+        Vector3 position = transform.position;
+        position.y -= moveSpeed * Time.deltaTime;
+        transform.position = position;
     }
 
-    void Deactivate()
+    private void Deactivate()
     {
-        if(transform.position.y <cameraY)
+        if (transform.position.y < cameraY)
         {
             gameObject.SetActive(false);
         }

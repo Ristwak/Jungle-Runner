@@ -1,5 +1,5 @@
+
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class BeeScript : MonoBehaviour
@@ -12,64 +12,53 @@ public class BeeScript : MonoBehaviour
 
     private float attackSpeed = 6f;
 
-    void Start()
+    private void Start()
     {
-        if(transform.position.x > 0f)
-        {
-            attackRight = false;
-        }
-        else
-        {
-            attackRight = true;
-        }
+        attackRight = transform.position.x <= 0f;
     }
 
-    void Update()
+    private void Update()
     {
         BeeAttack();
     }
 
-    void BeeAttack()
+    private void BeeAttack()
     {
-        if(transform.position.y > 0)
+        if (transform.position.y > 0f)
         {
-            Vector3 temp = transform.position;
-            temp.y -= moveSpeed *Time.deltaTime;
-            transform.position = temp;
+            Vector3 position = transform.position;
+            position.y -= moveSpeed * Time.deltaTime;
+            transform.position = position;
         }
-        else
+        else if (!attackStarted)
         {
-            if(!attackStarted)
-            {
-                attackStarted = true;
-
-                StartCoroutine(AttackPlayer());
-            }
+            attackStarted = true;
+            StartCoroutine(AttackPlayer());
         }
 
-        if(moveAndAttack)
+        if (moveAndAttack)
         {
-            if(!attackRight)
-            {
-                transform.position -= Vector3.right * attackSpeed * Time.deltaTime;
-            }
-            else
-            {
-                transform.position += Vector3.right * attackSpeed * Time.deltaTime;
-            }
+            float direction = attackRight ? 1f : -1f;
+            transform.position += Vector3.right * direction * attackSpeed * Time.deltaTime;
         }
     }
 
-    void Deactivate(){
-        gameObject.SetActive(false);
-    }
-    IEnumerator AttackPlayer()
+    private IEnumerator AttackPlayer()
     {
         yield return new WaitForSeconds(1.5f);
 
-        transform.rotation = Quaternion.Euler(new Vector3(0f,0f,Random.Range(0f, -45f)));
+        transform.rotation = Quaternion.Euler(
+            0f,
+            0f,
+            Random.Range(0f, -45f)
+        );
 
         moveAndAttack = true;
-        Invoke("Deactivate",5f);
+        Invoke(nameof(Deactivate), 5f);
+    }
+
+    private void Deactivate()
+    {
+        gameObject.SetActive(false);
     }
 }

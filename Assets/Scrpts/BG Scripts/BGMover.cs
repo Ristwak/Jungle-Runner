@@ -1,8 +1,7 @@
-using System.Collections;
-using System.Collections.Generic;
-using UnityEditor;
+
 using UnityEngine;
 
+[RequireComponent(typeof(BoxCollider2D))]
 public class BGMover : MonoBehaviour
 {
     public float moveSpeed = 5f;
@@ -14,82 +13,118 @@ public class BGMover : MonoBehaviour
     public GameObject[] enemies;
     public GameObject[] spawnPositions;
 
-    void Awake()
+    private void Awake()
     {
         sideBounds = GameObject.FindGameObjectsWithTag("SideBound");
-        cameraY = Camera.main.gameObject.transform.position.y - 15f;
 
-        boundHeight = GetComponent<BoxCollider2D>().bounds.size.y;
+        Camera mainCamera = Camera.main;
+        if (mainCamera != null)
+        {
+            cameraY = mainCamera.transform.position.y - 15f;
+        }
+        else
+        {
+            Debug.LogError("BGMover: Main Camera not found.", this);
+            enabled = false;
+            return;
+        }
+
+        BoxCollider2D boxCollider = GetComponent<BoxCollider2D>();
+        boundHeight = boxCollider.bounds.size.y;
+
+        if (sideBounds == null || sideBounds.Length == 0)
+        {
+            Debug.LogError("BGMover: No objects found with SideBound tag.", this);
+            enabled = false;
+            return;
+        }
     }
 
-
-    void Update()
+    private void Update()
     {
         Move();
         Reposition();
     }
 
-    void Move()
+    private void Move()
     {
-        Vector3 temp = transform.position;
-        temp.y -= moveSpeed * Time.deltaTime;
-        transform.position = temp;
+        Vector3 position = transform.position;
+        position.y -= moveSpeed * Time.deltaTime;
+        transform.position = position;
     }
 
-    void Reposition()
+    private void Reposition()
     {
-        if (transform.position.y < cameraY)
-        {
-            float highestBoundsY = sideBounds[0].transform.position.y;
+        if (transform.position.y >= cameraY)
+            return;
 
-            for (int i = 1; i < sideBounds.Length; i++)
+        float highestBoundsY = sideBounds[0].transform.position.y;
+
+        for (int i = 1; i < sideBounds.Length; i++)
+        {
+            if (sideBounds[i] != null &&
+                sideBounds[i].transform.position.y > highestBoundsY)
             {
-                if (highestBoundsY < sideBounds[i].transform.position.y)
-                {
-                    highestBoundsY = sideBounds[i].transform.position.y;
-                }
+                highestBoundsY = sideBounds[i].transform.position.y;
+            }
+        }
+
+        Vector3 position = transform.position;
+        position.y = highestBoundsY + boundHeight - 1f;
+        transform.position = position;
+
+        SpawnEnemies();
+    }
+
+    private void SpawnEnemies()
+    {
+        if (enemies == null || enemies.Length == 0)
+            return;
+
+        // Preserve original enemy spawning frequency.
+        if (Random.Range(0, 10) <= 0)
+            return;
+
+        int randomEnemyIndex = Random.Range(0, enemies.Length);
+
+        if (enemies[randomEnemyIndex] == null)
+            return;
+
+        if (randomEnemyIndex == 0)
+        {
+            // Flag enemy spawns in the middle.
+            Instantiate(
+                enemies[randomEnemyIndex],
+                new Vector3(0f, transform.position.y, 3f),
+                Quaternion.identity
+            );
+        }
+        else
+        {
+            if (spawnPositions == null ||
+                spawnPositions.Length < 2 ||
+                spawnPositions[0] == null ||
+                spawnPositions[1] == null)
+            {
+                Debug.LogWarning("BGMover: Spawn positions are not assigned.", this);
+                return;
             }
 
-            Vector3 temp = transform.position;
-            temp.y = highestBoundsY + boundHeight - 1f;
+            GameObject enemy = Instantiate(enemies[randomEnemyIndex]);
+            Vector3 enemyScale = enemy.transform.localScale;
 
-            transform.position = temp;
-            SpawnEnemies();
-        }
-    }
-
-    void SpawnEnemies()
-    {
-        // Frequency of Spawning Enemies
-        if (Random.Range(0, 10) > 0)
-        {
-            int randomEnemyIndex = Random.Range(0, enemies.Length);
-
-            if (randomEnemyIndex == 0)
+            if (Random.Range(0, 2) > 0)
             {
-                // Flag enemy - needs to spawn in the middle
-                Instantiate(enemies[randomEnemyIndex], new Vector3(0f, transform.position.y, 3f), Quaternion.identity);
+                enemy.transform.position = spawnPositions[0].transform.position;
+                enemyScale.x = -Mathf.Abs(enemyScale.x);
             }
             else
             {
-                GameObject enemyObj = Instantiate(enemies[randomEnemyIndex]);
-                Vector3 enemyScale = enemyObj.transform.localScale;
-
-                if(Random.Range(0,2) > 0)
-                {
-                    // Spawn Right
-                    enemyObj.transform.position = spawnPositions[0].transform.position;
-                    enemyScale.x = -Mathf.Abs(enemyScale.x);
-                }
-                else
-                {
-                    // Spawn Left
-                    enemyObj.transform.position = spawnPositions[1].transform.position;
-                    enemyScale.x = Mathf.Abs(enemyScale.x);
-                }
-
-                enemyObj.transform.localScale = enemyScale;
+                enemy.transform.position = spawnPositions[1].transform.position;
+                enemyScale.x = Mathf.Abs(enemyScale.x);
             }
+
+            enemy.transform.localScale = enemyScale;
         }
     }
 }

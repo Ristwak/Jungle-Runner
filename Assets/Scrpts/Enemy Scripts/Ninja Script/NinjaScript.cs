@@ -1,47 +1,59 @@
-using System.Collections;
-using System.Collections.Generic;
+
 using UnityEngine;
 
 public class NinjaScript : MonoBehaviour
 {
     public GameObject shuriken;
+
     private float moveSpeed = 5f;
     private float cameraY;
-
     private bool attackedPlayer;
 
-    void Start()
+    private void Start()
     {
-        cameraY = Camera.main.transform.position.y - 10f;
+        Camera mainCamera = Camera.main;
+
+        if (mainCamera != null)
+        {
+            cameraY = mainCamera.transform.position.y - 10f;
+        }
+        else
+        {
+            Debug.LogError("NinjaScript: Main Camera not found.", this);
+            enabled = false;
+        }
     }
 
-    // Update is called once per frame
-    void Update()
+    private void Update()
     {
         Move();
         Deactivate();
     }
 
-    void Move()
+    private void Move()
     {
-        Vector3 temp = transform.position;
-        temp.y -= moveSpeed * Time.deltaTime;
-        transform.position = temp;
+        Vector3 position = transform.position;
+        position.y -= moveSpeed * Time.deltaTime;
+        transform.position = position;
 
-        if(transform.position.y < 0f)
+        if (position.y < 0f && !attackedPlayer)
         {
-            if(!attackedPlayer)
-            {
-                attackedPlayer = true;
+            attackedPlayer = true;
 
+            if (shuriken != null)
+            {
                 Instantiate(shuriken, transform.position, Quaternion.identity);
+            }
+            else
+            {
+                Debug.LogWarning("NinjaScript: Shuriken prefab is not assigned.", this);
             }
         }
     }
 
-    void Deactivate()
+    private void Deactivate()
     {
-        if(transform.position.y <cameraY)
+        if (transform.position.y < cameraY)
         {
             gameObject.SetActive(false);
         }

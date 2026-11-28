@@ -1,43 +1,33 @@
-using System.Collections;
-using System.Collections.Generic;
+
 using UnityEngine;
 
 public class ShurikenScript : MonoBehaviour
 {
-    
     private bool attackRight;
     private float attackSpeed = 6f;
 
-    void Start()
+    private void Start()
     {
-        transform.rotation = Quaternion.Euler(new Vector3(0f,0f,Random.Range(-45f,45f)));
+        transform.rotation = Quaternion.Euler(
+            0f,
+            0f,
+            Random.Range(-45f, 45f)
+        );
 
-        if(transform.position.x > 0)
-        {
-            attackRight = false;
-        }
-        else
-        {
-            attackRight = true;
-        }
+        attackRight = transform.position.x <= 0f;
 
-        Invoke("Deactivate",5f);
+        Invoke(nameof(Deactivate), 5f);
     }
 
-    // Update is called once per frame
-    void Update()
+    private void Update()
     {
-        if(!attackRight)
-            {
-                transform.position -= Vector3.right * attackSpeed * Time.deltaTime;
-            }
-            else
-            {
-                transform.position += Vector3.right * attackSpeed * Time.deltaTime;
-            }
+        float direction = attackRight ? 1f : -1f;
+
+        transform.position +=
+            Vector3.right * direction * attackSpeed * Time.deltaTime;
     }
 
-    void Deactivate()
+    private void Deactivate()
     {
         gameObject.SetActive(false);
     }
